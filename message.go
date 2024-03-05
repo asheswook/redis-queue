@@ -14,7 +14,7 @@ func NewCommonMessage(payload string) *CommonMessage {
 }
 
 func NewSafeMessage(payload string, prefix string, queue *SafeQueue) *SafeMessage {
-	return &SafeMessage{payload: payload, prefix: prefix, safe: true, queue: queue}
+	return &SafeMessage{payload: payload, prefix: prefix, queue: queue}
 }
 
 // CommonMessage is a simple message
