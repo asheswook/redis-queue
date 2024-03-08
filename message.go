@@ -13,8 +13,8 @@ func NewCommonMessage(payload string) *CommonMessage {
 	return &CommonMessage{payload: payload}
 }
 
-func NewSafeMessage(payload string, prefix string, queue *SafeQueue) *SafeMessage {
-	return &SafeMessage{payload: payload, prefix: prefix, queue: queue}
+func NewSafeMessage(payload string, queue *SafeQueue) *SafeMessage {
+	return &SafeMessage{payload: payload, queue: queue}
 }
 
 // CommonMessage is a simple message
@@ -31,7 +31,6 @@ func (msg *CommonMessage) Payload() string {
 // If you don't ack it, the message will be popped again after a while.
 type SafeMessage struct {
 	payload string
-	prefix  string
 	queue   *SafeQueue
 }
 
@@ -40,7 +39,7 @@ func (msg *SafeMessage) Payload() string {
 }
 
 func (msg *SafeMessage) Ack() error {
-	_, err := ack.Run(msg.queue.ctx, msg.queue.rdb, []string{msg.queue.AckName}, msg.value()).Result()
+	_, err := ack.Run(msg.queue.ctx, msg.queue.rdb, []string{msg.queue.AckName}, msg.payload).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			// Lua returns false, which means failed to ack
@@ -50,8 +49,4 @@ func (msg *SafeMessage) Ack() error {
 	}
 
 	return nil
-}
-
-func (msg *SafeMessage) value() string {
-	return msg.prefix + msg.payload
 }

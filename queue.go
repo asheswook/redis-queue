@@ -24,18 +24,15 @@ type Queue interface {
 
 // CommonQueue is a simple queue
 type CommonQueue struct {
-	Name string
-	ctx  context.Context
-	rdb  redisClient
+	Name  string
+	ctx   context.Context
+	rdb   redisClient
+	retry int
 }
 
-func (q *CommonQueue) Pop() (Message, error) {
+func (q *CommonQueue) pop() (Message, error) {
 	result, err := pop.Run(q.ctx, q.rdb, []string{q.Name}).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			// Lua returns false, which means no message
-			return nil, nil
-		}
 		return nil, err
 	}
 
@@ -47,15 +44,35 @@ func (q *CommonQueue) Pop() (Message, error) {
 	return NewCommonMessage(v), nil
 }
 
-func (q *CommonQueue) Push(payload string) error {
+func (q *CommonQueue) Pop() (msg Message, err error) {
+	msg, err = q.pop()
+	switch {
+	case errors.Is(err, redis.Nil):
+		return nil, nil
+	case err != nil:
+		return nil, err
+	}
+
+	return msg, nil
+}
+
+func (q *CommonQueue) push(payload string) error {
 	_, err := push.Run(q.ctx, q.rdb, []string{q.Name}, payload).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			// Lua returns false, which means failed to push
-			return ErrPushFailed
-		}
 		return err
 	}
+	return nil
+}
+
+func (q *CommonQueue) Push(payload string) (err error) {
+	err = q.push(payload)
+	switch {
+	case errors.Is(err, redis.Nil):
+		return ErrPushFailed
+	case err != nil:
+		return err
+	}
+
 	return nil
 }
 
@@ -65,42 +82,46 @@ type SafeQueue struct {
 	ttl     int
 	ctx     context.Context
 	rdb     redisClient
+	retry   int
 }
 
-func (q *SafeQueue) SafePop() (Message, error) {
-	result, err := ackPop.Run(q.ctx, q.rdb, []string{q.Name, q.AckName}).Result()
+func (q *SafeQueue) safePop() (*SafeMessage, error) {
+	result, err := ackPop.Run(q.ctx, q.rdb, []string{q.Name, q.AckName}, q.ttl).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			// Lua returns false, which means no message
-			return nil, nil
-		}
 		return nil, err
 	}
 
-	casted, ok := result.([]interface{})
+	v, ok := result.(string)
 	if !ok {
 		return nil, ErrUnexpectedType
 	}
 
-	array := make([]string, len(casted))
-	for i, v := range casted {
-		str, ok := v.(string)
-		if !ok {
-			return nil, ErrUnexpectedType
-		}
-		array[i] = str
-	}
-
-	return NewSafeMessage(array[1], array[0], q), nil
+	return NewSafeMessage(v, q), nil
 }
 
-func (q *SafeQueue) Pop() (Message, error) {
+func (q *SafeQueue) SafePop() (msg *SafeMessage, err error) {
+	for i := 0; i < q.retry; i++ {
+		msg, err = q.safePop()
+		switch {
+		case errors.Is(err, redis.Nil):
+			return nil, nil
+		case errors.Is(err, ErrTimestampUpdateFailed):
+			continue
+		case errors.Is(err, ErrAckPopFailed):
+			continue
+		case err != nil:
+			return nil, err
+		}
+
+		// No error, return
+		break
+	}
+	return msg, nil
+}
+
+func (q *SafeQueue) pop() (Message, error) {
 	result, err := pop.Run(q.ctx, q.rdb, []string{q.Name}).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			// Lua returns false, which means no message
-			return nil, nil
-		}
 		return nil, err
 	}
 
@@ -112,14 +133,34 @@ func (q *SafeQueue) Pop() (Message, error) {
 	return NewCommonMessage(v), nil
 }
 
-func (q *SafeQueue) Push(payload string) error {
+func (q *SafeQueue) Pop() (msg Message, err error) {
+	msg, err = q.pop()
+	switch {
+	case errors.Is(err, redis.Nil):
+		return nil, nil
+	case err != nil:
+		return nil, err
+	}
+
+	return msg, nil
+}
+
+func (q *SafeQueue) push(payload string) error {
 	_, err := push.Run(q.ctx, q.rdb, []string{q.Name}, payload).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			// Lua returns false, which means failed to push
-			return ErrPushFailed
-		}
 		return err
 	}
+	return nil
+}
+
+func (q *SafeQueue) Push(payload string) (err error) {
+	err = q.push(payload)
+	switch {
+	case errors.Is(err, redis.Nil):
+		return ErrPushFailed
+	case err != nil:
+		return err
+	}
+
 	return nil
 }
