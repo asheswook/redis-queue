@@ -22,6 +22,15 @@ type Queue interface {
 	Push(payload string) error
 }
 
+func NewCommonQueue(cfg *Config) *CommonQueue {
+	return &CommonQueue{
+		Name:  cfg.Queue.Name,
+		ctx:   context.Background(),
+		rdb:   redis.NewUniversalClient(cfg.Redis),
+		retry: cfg.Queue.Retry,
+	}
+}
+
 // CommonQueue is a simple queue
 type CommonQueue struct {
 	Name  string
@@ -74,6 +83,17 @@ func (q *CommonQueue) Push(payload string) (err error) {
 	}
 
 	return nil
+}
+
+func NewSafeQueue(cfg *Config) *SafeQueue {
+	return &SafeQueue{
+		Name:    cfg.Queue.Name,
+		AckName: cfg.Safe.AckZSetName,
+		ttl:     cfg.Safe.TTL,
+		ctx:     context.Background(),
+		rdb:     redis.NewUniversalClient(cfg.Redis),
+		retry:   cfg.Queue.Retry,
+	}
 }
 
 type SafeQueue struct {
