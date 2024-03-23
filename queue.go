@@ -26,7 +26,7 @@ func NewCommonQueue(cfg *Config) *CommonQueue {
 	return &CommonQueue{
 		Name:  cfg.Queue.Name,
 		ctx:   context.Background(),
-		rdb:   redis.NewUniversalClient(cfg.Redis),
+		rdb:   cfg.Redis,
 		retry: cfg.Queue.Retry,
 	}
 }
