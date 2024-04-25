@@ -15,8 +15,8 @@ func ClearDatabase(rdb redisClient, ctx context.Context, key string) {
 }
 
 func TestCommonQueue(t *testing.T) {
-	client := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+	client := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs: []string{"localhost:6379"},
 	})
 
 	Name := "test"
@@ -68,12 +68,12 @@ func TestCommonQueue(t *testing.T) {
 }
 
 func TestSafeQueue(t *testing.T) {
-	client := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+	client := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs: []string{"localhost:6379"},
 	})
 
-	Name := "test"
-	ackName := "ack:test"
+	Name := "{test}"
+	ackName := "{test}:ack"
 
 	queue := SafeQueue{
 		Name:    Name,
