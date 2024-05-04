@@ -51,6 +51,13 @@ func main() {
 
   err := queue.Push("testPayload")
   msg, err := queue.SafePop()
+  if msg == nil && err == nil {
+    // No message
+  }
+
+  if err != nil {
+    // Error
+  }
 
   // Signal the message has been processed successfully.
   _ = msg.Ack()
