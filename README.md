@@ -36,14 +36,14 @@ func main() {
         Name  string
         Retry int
       }{
-        Name:  fmt.Sprintf("{%s}", config.QueueName),
+        Name:  fmt.Sprintf("{%s}", "YOUR_QUEUE_NAME"),
         Retry: config.Retry,
       },
       Safe: struct {
         AckZSetName string
         TTL         int
       }{
-        AckZSetName: fmt.Sprintf("{%s}:ack", config.QueueName),
+        AckZSetName: fmt.Sprintf("{%s}:ack", "YOUR_ACK_ZSET_NAME"),
         TTL:         config.TTL,
       },
     },
