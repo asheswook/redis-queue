@@ -16,41 +16,42 @@ go get -u github.com/asheswook/redis-queue
 package main
 
 import (
-  "github.com/redis/go-redis/v9"
-  redisqueue "github.com/asheswook/redis-queue"
+	"fmt"
+	"github.com/redis/go-redis/v9"
+	redisqueue "github.com/asheswook/redis-queue"
 )
 
 func main() {
-  // Using go-redis client
-  // You can also use normal client instead of cluster client
-  client := redis.NewClusterClient( 
-    &redis.ClusterOptions{
-      Addrs: config.Addrs,
-    },
-  )
+	// Using go-redis client
+	// You can also use normal client instead of cluster client
+	client := redis.NewClusterClient(
+		&redis.ClusterOptions{
+			Addrs: config.Addrs,
+		},
+	)
 
-  cfg := redisqueue.NewConfig()
-  cfg.Redis = client
-  cfg.Queue.Name = "YOUR_QUEUE_NAME"
-  cfg.Safe.AckZSetName = "YOUR_ACK_ZSET_NAME"
-  
-  queue, err := redisqueue.NewSafeQueue(cfg)
-  if err != nil {
-	  panic(err)
-  }
+	cfg := redisqueue.NewConfig()
+	cfg.Redis = client
+	cfg.Queue.Name = "YOUR_QUEUE_NAME"
+	cfg.Safe.AckZSetName = "YOUR_QUEUE_NAME:ack"
 
-  err = queue.Push("testPayload")
-  msg, err := queue.SafePop()
-  if msg == nil && err == nil {
-    // No message
-  }
+	queue, err := redisqueue.NewSafeQueue(cfg)
+	if err != nil {
+		panic(err)
+	}
 
-  if err != nil {
-    // Error
-  }
+	err = queue.Push("testPayload")
+	msg, err := queue.SafePop()
+	if msg == nil && err == nil {
+		// No message
+	}
 
-  // Signal the message has been processed successfully.
-  _ = msg.Ack()
+	if err != nil {
+		// Error
+	}
+
+	// Signal the message has been processed successfully.
+	_ = msg.Ack()
 }
 ```
 
