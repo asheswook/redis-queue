@@ -16,7 +16,6 @@ go get -u github.com/asheswook/redis-queue
 package main
 
 import (
-	"fmt"
 	"github.com/redis/go-redis/v9"
 	redisqueue "github.com/asheswook/redis-queue"
 )
