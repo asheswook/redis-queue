@@ -72,3 +72,21 @@ func main() {
 <p align="center">  
   <img src="https://github.com/asheswook/redis-queue/assets/25760310/07d08aea-9cca-48e2-a6f0-da8dc6663306" width='700px' />
 </p>
+
+## Time Complexity
+
+### CommonQueue Methods
+
+| Method          | Time Complexity |
+|-----------------|-----------------|
+| `Push(payload)` | **O(1)**        |
+| `Pop()`         | **O(1)**        |
+
+### SafeQueue Methods
+
+| Method          | Time Complexity |
+|-----------------|-----------------|
+| `Push(payload)` | **O(1)**        |
+| `Pop()`         | **O(1)**        |
+| `SafePop()`     | **O(log N)**    |
+| `Ack()`         | **O(log N)**    |
