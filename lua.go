@@ -46,7 +46,7 @@ local expired_ack = redis.pcall('ZRANGEBYSCORE', ack_zset_name, 0, (timestamp - 
 if expired_ack and #expired_ack > 0 then
 	local result = redis.pcall('ZADD', ack_zset_name, timestamp, expired_ack[1])
 	if tonumber(result) ~= 0 then
-		return { ERR = 'timestamp update failed' }
+		return { err = 'timestamp update failed' }
 	end
 	
 	return expired_ack[1]
@@ -70,7 +70,7 @@ end
 -- 중복 항목 있을 경우, 기존 행위 롤백
 redis.pcall('LPUSH', queue_name, result)
 
-return { ERR = 'EOF while ackPop' }
+return { err = 'EOF while ackPop' }
 `)
 
 // AckPop 후 성공적으로 처리했을 때, ack zset에서 삭제하는 스크립트
