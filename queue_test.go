@@ -15,8 +15,8 @@ func ClearDatabase(rdb redisClient, ctx context.Context, key string) {
 }
 
 func TestCommonQueue(t *testing.T) {
-	client := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs: []string{"localhost:6379"},
+	client := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
 	})
 
 	Name := "test"
@@ -68,8 +68,8 @@ func TestCommonQueue(t *testing.T) {
 }
 
 func TestSafeQueue(t *testing.T) {
-	client := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs: []string{"localhost:6379"},
+	client := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
 	})
 
 	Name := "{test}"
@@ -172,4 +172,34 @@ func TestSafeQueue(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Nil(t, safeMsg)
 	})
+
+	t.Run("DuplicateMessagePushAndPop", func(t *testing.T) {
+		ClearDatabase(queue.rdb, queue.ctx, Name)
+		ClearDatabase(queue.rdb, queue.ctx, ackName)
+		payload := "dupPayload"
+
+		err := queue.Push(payload)
+		assert.Nil(t, err)
+		err = queue.Push(payload)
+		assert.Nil(t, err)
+
+		safeMsg, err := queue.SafePop()
+		assert.Nil(t, err)
+		assert.Equal(t, payload, safeMsg.Payload())
+
+		safeMsg2, err2 := queue.SafePop()
+		assert.Nil(t, err2)
+		assert.NotNil(t, safeMsg2)
+		assert.Equal(t, payload, safeMsg2.Payload())
+
+		err = safeMsg.Ack()
+		assert.Nil(t, err)
+		err2 = safeMsg2.Ack()
+		assert.Nil(t, err2)
+
+		safeMsg3, err3 := queue.SafePop()
+		assert.Nil(t, err3)
+		assert.Nil(t, safeMsg3)
+	})
+
 }
