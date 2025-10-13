@@ -3,7 +3,10 @@ package redis_queue
 import (
 	"context"
 	"errors"
+	"fmt"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/redis/go-redis/v9"
+	"strings"
 )
 
 type redisClient interface {
@@ -116,7 +119,12 @@ func (q *SafeQueue) safePop() (*SafeMessage, error) {
 		return nil, ErrUnexpectedType
 	}
 
-	return NewSafeMessage(v, q), nil
+	parts := strings.SplitN(v, "|", 2)
+	if len(parts) != 2 {
+		return nil, ErrUnexpectedType
+	}
+
+	return NewSafeMessage(parts[0], parts[1], q), nil
 }
 
 func (q *SafeQueue) SafePop() (msg *SafeMessage, err error) {
@@ -150,7 +158,12 @@ func (q *SafeQueue) pop() (Message, error) {
 		return nil, ErrUnexpectedType
 	}
 
-	return NewCommonMessage(v), nil
+	parts := strings.SplitN(v, "|", 2)
+	if len(parts) != 2 {
+		return nil, ErrUnexpectedType
+	}
+
+	return NewCommonMessage(parts[1]), nil
 }
 
 func (q *SafeQueue) Pop() (msg Message, err error) {
@@ -166,7 +179,13 @@ func (q *SafeQueue) Pop() (msg Message, err error) {
 }
 
 func (q *SafeQueue) push(payload string) error {
-	_, err := push.Run(q.ctx, q.rdb, []string{q.Name}, payload).Result()
+	id, err := gonanoid.New(10)
+	if err != nil {
+		return err
+	}
+
+	rawMessage := fmt.Sprintf("%s|%s", id, payload)
+	_, err = push.Run(q.ctx, q.rdb, []string{q.Name}, rawMessage).Result()
 	if err != nil {
 		return err
 	}
