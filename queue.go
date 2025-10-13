@@ -25,13 +25,18 @@ type Queue interface {
 	Push(payload string) error
 }
 
-func NewCommonQueue(cfg *Config) *CommonQueue {
+func NewCommonQueue(cfg *Config) (*CommonQueue, error) {
+	err := cfg.isValid()
+	if err != nil {
+		return nil, err
+	}
+
 	return &CommonQueue{
 		Name:  cfg.Queue.Name,
 		ctx:   context.Background(),
 		rdb:   cfg.Redis,
 		retry: cfg.Queue.Retry,
-	}
+	}, nil
 }
 
 // CommonQueue is a simple queue
@@ -88,7 +93,12 @@ func (q *CommonQueue) Push(payload string) (err error) {
 	return nil
 }
 
-func NewSafeQueue(cfg *Config) *SafeQueue {
+func NewSafeQueue(cfg *Config) (*SafeQueue, error) {
+	err := cfg.isValid()
+	if err != nil {
+		return nil, err
+	}
+
 	return &SafeQueue{
 		Name:    cfg.Queue.Name,
 		AckName: cfg.Safe.AckZSetName,
@@ -96,7 +106,7 @@ func NewSafeQueue(cfg *Config) *SafeQueue {
 		ctx:     context.Background(),
 		rdb:     cfg.Redis,
 		retry:   cfg.Queue.Retry,
-	}
+	}, nil
 }
 
 type SafeQueue struct {

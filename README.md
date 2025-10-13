@@ -29,27 +29,17 @@ func main() {
     },
   )
 
-  queue := redisqueue.NewSafeQueue(
-    &redisqueue.Config{
-      Redis: client,
-      Queue: struct {
-        Name  string
-        Retry int
-      }{
-        Name:  fmt.Sprintf("{%s}", "YOUR_QUEUE_NAME"),
-        Retry: config.Retry,
-      },
-      Safe: struct {
-        AckZSetName string
-        TTL         int
-      }{
-        AckZSetName: fmt.Sprintf("{%s}:ack", "YOUR_ACK_ZSET_NAME"),
-        TTL:         config.TTL,
-      },
-    },
-  )
+  cfg := redisqueue.NewConfig()
+  cfg.Redis = client
+  cfg.Queue.Name = "YOUR_QUEUE_NAME"
+  cfg.Safe.AckZSetName = "YOUR_ACK_ZSET_NAME"
+  
+  queue, err := redisqueue.NewSafeQueue(cfg)
+  if err != nil {
+	  panic(err)
+  }
 
-  err := queue.Push("testPayload")
+  err = queue.Push("testPayload")
   msg, err := queue.SafePop()
   if msg == nil && err == nil {
     // No message
